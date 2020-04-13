@@ -1,6 +1,7 @@
 package tiv.exchange;
 
 import com.google.code.beanmatchers.BeanMatchers;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,10 +21,8 @@ import tiv.exchange.services.CurrencyService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import static org.hamcrest.CoreMatchers.allOf;
-
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Random;
 
 import static com.google.code.beanmatchers.BeanMatchers.*;
 import static org.mockito.Mockito.*;
@@ -72,8 +71,10 @@ public class ExchangeApplicationTests {
 
     @Test
     void testDtoMapping() {
-        BeanMatchers.registerValueGenerator(LocalDateTime::now, LocalDateTime.class);
-        BeanMatchers.registerValueGenerator(() -> LocalDate.now().minusDays(Math.abs(new Random().nextLong()) % 100), LocalDate.class);
+        BeanMatchers.registerValueGenerator(
+                () -> LocalDateTime.now().plusDays(RandomUtils.nextLong(1L, 10L)), LocalDateTime.class);
+        BeanMatchers.registerValueGenerator(
+                () -> LocalDate.now().minusDays(RandomUtils.nextLong(1L, 10L)), LocalDate.class);
         assertThat(Account.class, allOf(hasValidBeanConstructor(), hasValidBeanEquals(), hasValidGettersAndSetters(),
                 hasValidBeanHashCode(), hasValidBeanToString()));
         assertThat(Currency.class, allOf(hasValidBeanConstructor(), hasValidBeanEquals(), hasValidGettersAndSetters(),
@@ -83,13 +84,12 @@ public class ExchangeApplicationTests {
     @Test
     void fullIntegrationTest() throws Exception {
         doReturn(getCurrencyMock()).when(currencyService).getCurrenciesFromCache();
-        System.out.println(currencyService.getCurrenciesFromCache());
         mockMvc.perform(get("/accounts/{accountId}", 1L))
                 .andExpect(status().is2xxSuccessful())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(1000));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(10));
     }
 
-    private Object getCurrencyMock() {
+    private Currency getCurrencyMock() {
         final Currency currency = new Currency();
         currency.setBase("EUR");
         currency.setDate(LocalDate.now());
